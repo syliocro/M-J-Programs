@@ -106,6 +106,10 @@ def enter_data():
         except sqlite3.IntegrityError:
             tkinter.messagebox.showwarning(title="Error: Existing Entry", message="An invoice with this Invoice ID already exists.")
 
+def view_invoice():
+    return 0
+
+
 
 
 # ==========================================================================
