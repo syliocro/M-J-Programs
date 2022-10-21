@@ -136,7 +136,7 @@ def enter_data():
             invoice.add_item(Item(1, amount, description=description)) # unit, price per unit, description
 
             pdf = SimpleInvoice(invoice)
-            pdf.gen("invoices/invoice_" + str(invoice_id) + ".pdf")
+            pdf.gen("invoices/" + str(invoice_id) + "_" + str(first_name) + "_" + str(last_name) + "_" + str(date) + ".pdf")
 
             tkinter.messagebox.showinfo(title="Success", message="Invoice successfully added.")
         # alerts user if invoice_id already exists
