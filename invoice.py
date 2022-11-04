@@ -1,15 +1,14 @@
 import sqlite3
 import tkinter
 import os
+import os.path
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from tkdocviewer import *
 from tempfile import NamedTemporaryFile
-from InvoiceGenerator.api import Invoice, Item, Client, Provider, Creator
-from InvoiceGenerator.pdf import SimpleInvoice
-
-os.environ["INVOICE_LANG"] = "en"
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 # root window
 window = Tk()
@@ -38,12 +37,6 @@ create_table_query = """CREATE TABLE IF NOT EXISTS invoices (
 cursor.execute(create_table_query)
 
 # [ FUNCTIONS ]
-
-# opens create invoice window with form
-#def createinvoice():
-#    window.withdraw()
-#    os.system("python createinvoice.py")
-#    window.deiconify()
 
 # validates input of entered data when creating a new invoice
 def validate(list):
@@ -93,8 +86,8 @@ def validate(list):
     else:
         return True
 
-# enters the form data into db after submit is pressed + generates pdf
-def enter_data():
+# returns a tuple of the current data selected
+def get_selected_data():
     # invoice information
     invoice_id = invoice_id_entry.get()
     date = date_entry.get()
@@ -109,7 +102,13 @@ def enter_data():
     city = city_entry.get()
     zip = zip_entry.get()
 
-    data_insert_tuple = (invoice_id, first_name, last_name, date, company, street, city, state, zip, description, amount)
+    data_tuple = (invoice_id, first_name, last_name, date, company, street, city, state, zip, description, amount)
+
+    return data_tuple
+
+# enters the form data into db after submit is pressed + generates pdf
+def enter_data():
+    data_insert_tuple = get_selected_data()
 
     # checking data
     is_correct_input = validate(data_insert_tuple)
@@ -123,83 +122,140 @@ def enter_data():
             conn.commit() # save changes to database
 
             # generate pdf
-            client = Client(first_name + " " + last_name)
-            client.note = company
-            client.address = street
-            client.city = city + ", " + state
-            client.zip_code = zip
-
-            provider = Provider("M&J Loudon LLC", logo_filename="mjlogo.png")
-            provider.address = "7 Loudoun St SW"
-            provider.city = "Leesburg, VA"
-            provider.zip_code = "20175"
-            provider.phone = "703-669-6400"
-
-            creator = Creator("M&J Loudon LLC") # creator of the invoice
-
-            invoice = Invoice(client, provider, creator)
-            invoice.note = date
-            invoice.title = "M&J Invoicing"
-            invoice.number = invoice_id
-            invoice.currency = "$"
-            invoice.currency_locale = 'en_US.UTF-8'
-            invoice.add_item(Item(1, amount, description=description)) # unit, price per unit, description
-
-            pdf = SimpleInvoice(invoice)
-            pdf.gen("invoices/" + str(invoice_id) + "_" + str(first_name) + "_" + str(last_name) + "_" + str(date) + ".pdf")
-
+            create_pdf(data_insert_tuple)
             tkinter.messagebox.showinfo(title="Success", message="Invoice successfully added.")
             clear()
         # alerts user if invoice_id already exists
         except sqlite3.IntegrityError:
             tkinter.messagebox.showwarning(title="Error: Existing Entry", message="An invoice with this Invoice ID already exists.")
 
+# generates pdf based on values given
+def create_pdf(values):
+    # getting variables to use
+    invoice_id = values[0]
+    first_name = values[1]
+    last_name = values[2]
+    date = values[3]
+    company = values[4]
+    street = values[5]
+    city = values[6]
+    state = values[7]
+    zip = values[8]
+    description = values[9]
+    amount = values[10]
+
+    # setting up where to save pdf
+    # invoiceid_firstname_lastname_date
+    filename = str(invoice_id) + "_" + str(first_name) + "_" + str(last_name) + "_" + str(date)
+    c = canvas.Canvas(f"invoices/{filename}.pdf", pagesize=letter)
+    c.setFont('Helvetica', 12)
+
+    # company logo
+    c.drawImage("mjlogo.png", 100, 600, width=128, height=85)
+
+    # top right text
+    c.setFillColor("gray")
+    c.drawString(400, 660, 'Invoice #:')
+    c.setFillColor("black")
+    c.drawString(460, 660, f'{invoice_id}')
+
+    c.setFillColor("gray")
+    c.drawString(423, 640, 'Date:')
+    c.setFillColor("black")
+    c.drawString(460, 640, f'{date}')
+
+    # company information
+    c.drawString(100, 550, 'M&J Loudoun LLC')
+    c.drawString(100, 530, '7 Loudoun St SW')
+    c.drawString(100, 510, 'Leesburg, VA 20175')
+    c.drawString(100, 490, '(703) 669-6400')
+
+    # customer information
+    c.setFillColor("black")
+    c.drawString(400, 550, f'{company}')
+    c.drawString(400, 530, f'{first_name} {last_name}')
+    c.drawString(400, 510, f'{street}')
+    c.drawString(400, 490, f'{city}, {state} {zip}')
+
+    # table headers
+    c.setFillColor("gray")
+    c.drawString(100, 440, 'DESCRIPTION')
+    c.drawString(280, 440, 'AMOUNT')
+    c.drawString(420, 440, 'SUBTOTAL')
+
+    # add line
+    c.setStrokeColor('gray')
+    c.setLineWidth(.3)
+    # (x1,y1, x2,y2)
+    c.line(100, 430, 500, 430)
+
+    # billing items
+    c.setFillColor("black")
+    c.drawString(100, 410, f'{description}')
+    c.drawString(280, 410, f'${amount}')
+    c.setFillColor("red")
+    c.drawString(420, 410, f'${amount}')
+
+
+    # total due section
+    c.setFont('Helvetica', 15)
+    c.setFillColor("gray")
+    c.drawString(325, 100, 'TOTAL DUE:')
+    c.setFillColor("red")
+    c.drawString(425, 100, f'${amount}')
+
+    c.showPage() # writes to canvas
+    c.save() # saves file and closes canvas
+
+
 # opens the invoice pdf in another window
 def view_pdf():
-    newWindow = Toplevel(window)
-    newWindow.title("Invoice PDF")
-    newWindow.geometry("600x800")
+    id = invoice_id_entry.get()
+    first_name = first_name_entry.get()
+    last_name = last_name_entry.get()
+    date = date_entry.get()
 
-#def view_pdf(invoice):
-#    id = str(invoice[0])
-#    first_name = invoice[2]
-#    last_name = invoice[3]
-#    date = invoice[1]
-#    path = "invoices/" + id + "_" + first_name + "_" + last_name + "_" + date + ".pdf"
-#    v = DocViewer(pdf_frame)
-#    v.grid(row=0, column=0, sticky="NEWS")
-#    return v.display_file(f"{path}")
+    path = "invoices/" + id + "_" + first_name + "_" + last_name + "_" + date + ".pdf"
+    isExist = os.path.exists(path)
 
-# edits invoice information
-def edit_invoice(invoice):
-    id = str(invoice[0])
-    get_query = f"""SELECT * FROM invoices WHERE invoice_id = {id}"""
-    query_results = cursor.execute(get_query)
-    
-    edit_frame = tkinter.Frame(frame)
-    edit_frame.grid(row=3, column=0)
-    edit_frame.tkraise()
+    # check if empty entry boxes to prevent empty pdf generation
+    isEmpty = False
+    for var in get_selected_data():
+        if len(var) == 0:
+            isEmpty = True
 
-    # ------------- testing, put button at end tat submits new inputs, follow with rest ---
-    # [ LABELS ]
-    date_label = tkinter.Label(edit_frame, text="Date (MM-DD-YYYY)")
-    date_label.grid(row=1, column=0)
+    # checks if file exists, if not then it makes one for you after a prompt
+    if isEmpty:
+        tkinter.messagebox.showwarning(title="Error: Empty Entry", message="Select an invoice first to view its PDF.")
+    elif isExist:
+        newWindow = Toplevel(window)
+        newWindow.title("Invoice PDF")
+        newWindow.geometry("612x792")
 
-    # [ INPUT FIELDS ]
-    date_entry = tkinter.Entry(edit_frame)
-    date_entry.insert(0, f"{invoice[1]}")
-    date_entry.grid(row=1, column=1)
+        v = DocViewer(newWindow)
+        v.pack(expand=True, fill="both")
+        return v.display_file(f'{path}')
+    else:
+        if messagebox.askyesno("Missing PDF", "A PDF does not exist for this invoice. Create one?"):
+            create_pdf(get_selected_data())
+            tkinter.messagebox.showinfo(title="Success", message="PDF successfully created.")
+            view_pdf()
+        else:
+            return 0
 
-    # re-sizing the elements
-    for widget in edit_frame.winfo_children():
-        widget.grid_configure(padx=10, pady=5)
-
-    # user can see all fields pre-filled out from grabbing data and can erase and type new (can't change invoice id number)
-    # gets the new inputs from user on what to update
-    # selects invoice to update
-    # sql query update set where id is equal to num
-    #----------------------------------------------------------------------------
-    return 0
+# clears current text in entry boxes
+def clear_entry():
+    invoice_id_entry.delete(0, 'end')
+    date_entry.delete(0, 'end')
+    description_entry.delete(0, 'end')
+    amount_entry.delete(0, 'end')
+    first_name_entry.delete(0, 'end')
+    last_name_entry.delete(0, 'end')
+    company_entry.delete(0, 'end')
+    state_combobox.delete(0, 'end')
+    street_entry.delete(0, 'end')
+    city_entry.delete(0, 'end')
+    zip_entry.delete(0, 'end')
 
 # =========================================================================
 
@@ -234,9 +290,16 @@ invoice_list_frame.pack(padx=20, pady=20, fill=BOTH, side=LEFT, expand=TRUE)
 invoice_data_frame = tkinter.LabelFrame(frame, text="Invoice Data", padx=20, pady=20)
 invoice_data_frame.pack(padx=20, pady=20, fill=BOTH, side=RIGHT, expand=TRUE)
 
+# clear button
+clear_btn_frame = tkinter.Frame(invoice_data_frame)
+clear_btn_frame.grid(row=0, column=0)
+# button to clear current entry boxes
+clear_btn = tkinter.Button(clear_btn_frame, text="Clear", command=lambda:clear_entry(), bg="#a0d88a")
+clear_btn.grid(row=0, column=0)
+
 # invoice information
 invoice_info_frame = tkinter.LabelFrame(invoice_data_frame, text="Invoice Information")
-invoice_info_frame.grid(row=0, column=0)
+invoice_info_frame.grid(row=1, column=0)
 
 invoice_id_label = tkinter.Label(invoice_info_frame, text="Invoice ID")
 invoice_id_label.grid(row=0, column=0)
@@ -260,7 +323,7 @@ amount_entry.grid(row=3, column=1)
 
 # customer information
 customer_info_frame = tkinter.LabelFrame(invoice_data_frame, text="Customer Information")
-customer_info_frame.grid(row=1, column=0)
+customer_info_frame.grid(row=2, column=0)
 
 first_name_label = tkinter.Label(customer_info_frame, text="First Name")
 first_name_label.grid(row=0, column=0)
@@ -299,7 +362,7 @@ zip_entry.grid(row=6, column=1)
 
 # buttons
 invoice_buttons_frame = tkinter.Frame(invoice_data_frame)
-invoice_buttons_frame.grid(row=2, column=0)
+invoice_buttons_frame.grid(row=3, column=0)
 
 # button to view invoice as pdf
 view_invoice_pdf_btn = tkinter.Button(invoice_buttons_frame, text="View PDF", command=lambda:view_pdf(), bg="#a0d88a")
@@ -316,7 +379,6 @@ update_invoice_btn.grid(row=0, column=2)
 # button to delete invoice
 delete_invoice_btn = tkinter.Button(invoice_buttons_frame, text="Delete", command=lambda:delete_invoice(), bg="#e99c9c")
 delete_invoice_btn.grid(row=0, column=3)
-
 
 
 # re-sizing the elements
@@ -483,6 +545,7 @@ def delete_invoice():
         cursor.execute(f"DELETE FROM invoices WHERE invoice_id = {id}")
         cursor.execute("COMMIT")
         tkinter.messagebox.showinfo(title="Success", message="Invoice successfully deleted.")
+        print(id)
         clear()
     else:
         return 0
@@ -505,15 +568,17 @@ def update_invoice():
                 WHERE
                     invoice_id = {id}"""
     cursor.execute(query)
+    # save changes to db
+    cursor.execute("COMMIT;")
+
+    # makes new pdf based off of new edit
+    create_pdf(get_selected_data())
+
     tkinter.messagebox.showinfo(title="Success", message="Invoice successfully updated.")
     clear()
 
-
+# display current database data
 display_data()
-
-# [ PDF PREVIEW SECTION ]
-#pdf_frame = tkinter.Frame(frame, width=300, height=600)
-#pdf_frame.grid(row=1, column=1)
 
 # ==========================================================================
 
