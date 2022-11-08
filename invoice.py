@@ -7,6 +7,8 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkdocviewer import *
 from tempfile import NamedTemporaryFile
+from pathlib import Path
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
@@ -14,6 +16,25 @@ from reportlab.lib.pagesizes import letter
 window = Tk()
 window.geometry("1366x768")
 window.title("M&J Invoicing")
+window.configure(bg = "#0F1A20")
+window.iconbitmap("mjlogo.ico")
+window.option_add('*Font', '12')
+
+# setting frame to be contained inside window
+frame = tkinter.Frame(window) 
+frame.pack(expand=True)
+
+# background
+canvasgui = Canvas(
+    window,
+    bg = "#0F1A20",
+    height = 768,
+    width = 1366,
+    bd = 0,
+    highlightthickness = 0,
+    relief = "ridge"
+)
+canvasgui.place(x = 0, y = 0)
 
 # connect to db
 conn = sqlite3.connect("./databases/invoices.db")
@@ -180,8 +201,9 @@ def create_pdf(values):
     # table headers
     c.setFillColor("gray")
     c.drawString(100, 440, 'DESCRIPTION')
-    c.drawString(280, 440, 'AMOUNT')
-    c.drawString(420, 440, 'SUBTOTAL')
+    c.drawString(420, 440, 'AMOUNT')
+    #c.drawString(280, 440, 'AMOUNT')
+    #c.drawString(420, 440, 'SUBTOTAL')
 
     # add line
     c.setStrokeColor('gray')
@@ -192,9 +214,10 @@ def create_pdf(values):
     # billing items
     c.setFillColor("black")
     c.drawString(100, 410, f'{description}')
-    c.drawString(280, 410, f'${amount}')
-    c.setFillColor("red")
     c.drawString(420, 410, f'${amount}')
+    #c.drawString(280, 410, f'${amount}')
+    #c.setFillColor("red")
+    #c.drawString(420, 410, f'${amount}')
 
 
     # total due section
@@ -257,138 +280,14 @@ def clear_entry():
     city_entry.delete(0, 'end')
     zip_entry.delete(0, 'end')
 
+def open_calculator():
+    #calculator_window = Toplevel(window)
+    #calculator_window.title("Invoice PDF")
+    #calculator_window.geometry("612x792")
+    #os.system("python rentCalc.py")
+    tkinter.messagebox.showinfo(title="Calculator", message="Calculator view will be added soon.")
+
 # =========================================================================
-
-# [ PAGE CONTENT ]
-frame = tkinter.Frame(window) # setting frame to be contained inside window
-frame.pack(expand=True)
-
-# [ NAVIGATION SECTION ] --------------------------------------------
-# text entry + button to search
-search_frame = tkinter.Frame(frame)
-search_frame.pack(ipadx=20, ipady=20, anchor=N, expand=TRUE)
-
-search_entry = tkinter.Entry(search_frame)
-search_entry.pack(ipadx=30, padx=10, pady=20, side=LEFT)
-
-search_btn = tkinter.Button(search_frame, text="Search", command=lambda:search(search_entry.get()), bg="#a0d88a")
-search_btn.pack(padx=10, pady=20, side=LEFT)
-
-# button to show all invoices
-showall_btn = tkinter.Button(search_frame, text="Show All", command=lambda:display_data(), bg="#a0d88a")
-showall_btn.pack(padx=10, pady=20, side=LEFT)
-
-# button to open cost estimation calculator
-calculator_btn = tkinter.Button(search_frame, text="Cost Estimation Calculator", command="", bg="#a0d88a")
-calculator_btn.pack(padx=10, pady=20, side=RIGHT)
-
-# [ VIEW ALL INVOICES CURRENTLY IN DATABASE SECTION ] -------------------------
-invoice_list_frame = tkinter.LabelFrame(frame, text="Invoices", padx=20, pady=20)
-invoice_list_frame.pack(padx=20, pady=20, fill=BOTH, side=LEFT, expand=TRUE)
-
-# [ INVOICE DATA SECTION ] ------------------------------------
-invoice_data_frame = tkinter.LabelFrame(frame, text="Invoice Data", padx=20, pady=20)
-invoice_data_frame.pack(padx=20, pady=20, fill=BOTH, side=RIGHT, expand=TRUE)
-
-# clear button
-clear_btn_frame = tkinter.Frame(invoice_data_frame)
-clear_btn_frame.grid(row=0, column=0)
-# button to clear current entry boxes
-clear_btn = tkinter.Button(clear_btn_frame, text="Clear", command=lambda:clear_entry(), bg="#a0d88a")
-clear_btn.grid(row=0, column=0)
-
-# invoice information
-invoice_info_frame = tkinter.LabelFrame(invoice_data_frame, text="Invoice Information")
-invoice_info_frame.grid(row=1, column=0)
-
-invoice_id_label = tkinter.Label(invoice_info_frame, text="Invoice ID")
-invoice_id_label.grid(row=0, column=0)
-invoice_id_entry = tkinter.Entry(invoice_info_frame)
-invoice_id_entry.grid(row=0, column=1)
-
-date_label = tkinter.Label(invoice_info_frame, text="Date (MM-DD-YYYY)")
-date_label.grid(row=1, column=0)
-date_entry = tkinter.Entry(invoice_info_frame)
-date_entry.grid(row=1, column=1)
-
-description_label = tkinter.Label(invoice_info_frame, text="Description")
-description_label.grid(row=2, column=0)
-description_entry = tkinter.Entry(invoice_info_frame)
-description_entry.grid(row=2, column=1)
-
-amount_label = tkinter.Label(invoice_info_frame, text="Amount")
-amount_label.grid(row=3, column=0)
-amount_entry = tkinter.Entry(invoice_info_frame)
-amount_entry.grid(row=3, column=1)
-
-# customer information
-customer_info_frame = tkinter.LabelFrame(invoice_data_frame, text="Customer Information")
-customer_info_frame.grid(row=2, column=0)
-
-first_name_label = tkinter.Label(customer_info_frame, text="First Name")
-first_name_label.grid(row=0, column=0)
-first_name_entry = tkinter.Entry(customer_info_frame)
-first_name_entry.grid(row=0, column=1)
-
-last_name_label = tkinter.Label(customer_info_frame, text="Last Name")
-last_name_label.grid(row=1, column=0)
-last_name_entry = tkinter.Entry(customer_info_frame)
-last_name_entry.grid(row=1, column=1)
-
-company_label = tkinter.Label(customer_info_frame, text="Company")
-company_label.grid(row=2, column=0)
-company_entry = tkinter.Entry(customer_info_frame)
-company_entry.grid(row=2, column=1)
-
-street_label = tkinter.Label(customer_info_frame, text="Street Address")
-street_label.grid(row=3, column=0)
-street_entry = tkinter.Entry(customer_info_frame)
-street_entry.grid(row=3, column=1)
-
-city_label = tkinter.Label(customer_info_frame, text="City")
-city_label.grid(row=4, column=0)
-city_entry = tkinter.Entry(customer_info_frame)
-city_entry.grid(row=4, column=1)
-
-state_label = tkinter.Label(customer_info_frame, text="State")
-state_combobox = ttk.Combobox(customer_info_frame, values=["AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TX","UT","VT","VA","WA","WV","WI","WY"])
-state_label.grid(row=5, column=0)
-state_combobox.grid(row=5, column=1)
-
-zip_label = tkinter.Label(customer_info_frame, text="ZIP Code")
-zip_label.grid(row=6, column=0)
-zip_entry = tkinter.Entry(customer_info_frame)
-zip_entry.grid(row=6, column=1)
-
-# buttons
-invoice_buttons_frame = tkinter.Frame(invoice_data_frame)
-invoice_buttons_frame.grid(row=3, column=0)
-
-# button to view invoice as pdf
-view_invoice_pdf_btn = tkinter.Button(invoice_buttons_frame, text="View PDF", command=lambda:view_pdf(), bg="#a0d88a")
-view_invoice_pdf_btn.grid(row=0, column=0)
-
-# button to create invoice form
-createnewinvoice_btn = tkinter.Button(invoice_buttons_frame, text="Create", command=lambda:enter_data(), bg="#a0d88a")
-createnewinvoice_btn.grid(row=0, column=1)
-
-# button to update invoice
-update_invoice_btn = tkinter.Button(invoice_buttons_frame, text="Update", command=lambda:update_invoice(), bg="#e9e29c")
-update_invoice_btn.grid(row=0, column=2)
-
-# button to delete invoice
-delete_invoice_btn = tkinter.Button(invoice_buttons_frame, text="Delete", command=lambda:delete_invoice(), bg="#e99c9c")
-delete_invoice_btn.grid(row=0, column=3)
-
-
-# re-sizing the elements
-for widget in invoice_data_frame.winfo_children():
-    widget.grid_configure(padx=10, pady=5)
-for widget in customer_info_frame.winfo_children():
-    widget.grid_configure(padx=10, pady=5)
-for widget in invoice_buttons_frame.winfo_children():
-    widget.grid_configure(padx=10, pady=5)
-
 
 # [ SET UP INVOICES TABLE TO DISPLAY ]
 
@@ -397,7 +296,15 @@ columns = ('invoice_id', 'date', 'first_name', 'last_name', 'company', 'descript
 col_headings = ('ID', 'Date', 'First Name', 'Last Name', 'Company', 'Description', 'Amount')
 
 # create tree to display data
-tree_invoices = ttk.Treeview(invoice_list_frame, selectmode="browse", columns=columns, show='headings')
+tree_invoices = ttk.Treeview(canvasgui, selectmode="browse", columns=columns, show='headings', style="mystyle.Treeview")
+
+# style the tree view
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("mystyle.Treeview", font=('Microsoft Sans Serif', 12))
+style.configure("mystyle.Treeview.Heading", font=('Microsoft Sans Serif', 15,'bold'), background="#742438", foreground="white")
+style.configure("mystyle.Treeview", rowheight=30)
+
 
 for c in columns:
     # setting widths of all columns to be 100 wide
@@ -408,6 +315,7 @@ for c in columns:
 
 # define the headers
 tree_invoices.heading('invoice_id', text='ID')
+tree_invoices.column("invoice_id", width=25)
 tree_invoices.heading('date', text='Date')
 tree_invoices.heading('first_name', text='First Name')
 tree_invoices.heading('last_name', text='Last Name')
@@ -415,7 +323,13 @@ tree_invoices.heading('company', text='Company')
 tree_invoices.heading('description', text='Description')
 tree_invoices.heading('amount', text='Amount')
 
-tree_invoices.pack()
+# place on gui
+tree_invoices.place(
+    x=40,
+    y=114,
+    width=800,
+    height=620
+)
 
 # [ TREE FUNCTIONS ]
 
@@ -519,17 +433,17 @@ def select_row():
             query_values.append(invoice[j])
 
     # ouput to entry boxes
-    invoice_id_entry.insert(0, query_values[0])
-    first_name_entry.insert(0, query_values[1])
-    last_name_entry.insert(0, query_values[2])
-    date_entry.insert(0, query_values[3])
-    company_entry.insert(0, query_values[4])
-    street_entry.insert(0, query_values[5])
-    city_entry.insert(0, query_values[6])
-    state_combobox.insert(0, query_values[7])
-    zip_entry.insert(0, query_values[8])
-    description_entry.insert(0, query_values[9])
-    amount_entry.insert(0, query_values[10])
+    invoice_id_entry.insert(0, query_values[0]) # 5
+    first_name_entry.insert(0, query_values[1]) # Jessica
+    last_name_entry.insert(0, query_values[2]) # Sampson
+    date_entry.insert(0, query_values[3]) # 07-15-2022
+    company_entry.insert(0, query_values[4]) # Today Inc
+    street_entry.insert(0, query_values[5]) # 1806 Eva Pearl St
+    city_entry.insert(0, query_values[6]) # Leesburg
+    state_combobox.insert(0, query_values[7]) # VA
+    zip_entry.insert(0, query_values[8]) # 20176
+    description_entry.insert(0, query_values[9]) # monthly rent
+    amount_entry.insert(0, query_values[10]) # 1500
 
 # binding click function (double click to select row)
 def clicker(event):
@@ -577,9 +491,540 @@ def update_invoice():
     tkinter.messagebox.showinfo(title="Success", message="Invoice successfully updated.")
     clear()
 
+# opens file explorer to where all the invoice pdfs are stored
+def open_invoice_folder():
+    os.startfile(r'invoices')
+
 # display current database data
 display_data()
 
-# ==========================================================================
+# [ TKINTER GUI ] ===============================================================
+
+# [ PAGE CONTENT ]
+
+# search box
+search_entry_img = PhotoImage(
+    file="assets/search_entry.png")
+entry_bg_1 = canvasgui.create_image(
+    175.5,
+    49.5,
+    image=search_entry_img
+)
+search_entry = Entry(
+    bd=0,
+    bg="#FFFFFF",
+    highlightthickness=0
+)
+search_entry.place(
+    x=46.5,
+    y=32.0,
+    width=258.0,
+    height=33.0
+)
+
+# search button
+search_btn_img = PhotoImage(
+    file="assets/search_btn.png")
+search_btn = Button(
+    image=search_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:search(search_entry.get()),
+    relief="flat"
+)
+search_btn.place(
+    x=342.0,
+    y=32.0,
+    width=131.0,
+    height=35.0
+)
+
+# show all button
+showall_btn_img = PhotoImage(
+    file="assets/showall_btn.png")
+showall_btn = Button(
+    image=showall_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:display_data(),
+    relief="flat"
+)
+showall_btn.place(
+    x=493.0,
+    y=32.0,
+    width=150.0,
+    height=35.0
+)
+# open invoice pdf folder button
+invoice_folder_btn_img = PhotoImage(file="assets/openfolder.png")
+invoice_folder_btn = Button(
+    image = invoice_folder_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:open_invoice_folder(),
+    relief="flat"
+)
+invoice_folder_btn.place(
+    x=664.0,
+    y=32.0,
+    width=88.0,
+    height=35.0
+)
+
+# calculator button
+calculator_btn_img = PhotoImage(
+    file="assets/calculator_btn.png")
+calculator_btn = Button(
+    image=calculator_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:open_calculator(),
+    relief="flat"
+)
+calculator_btn.place(
+    x=876.0,
+    y=32.0,
+    width=454.0,
+    height=35.0
+)
+
+# white box
+#canvas.create_rectangle(
+#    17.0,
+#    96.0,
+#    1349.0,
+#    753.0,
+#    fill="#FFFFFF",
+#    outline="")
+
+# INVOICE INFO SECTION ----------------------------------
+
+# gray box
+canvasgui.create_rectangle(
+    875.0,
+    114.0,
+    1330.0,
+    735.0,
+    fill="#ECECEC",
+    outline="")
+
+canvasgui.create_text(
+    889.0,
+    129.0,
+    anchor="nw",
+    text="Invoice Data",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 24 * -1)
+)
+
+# clear button
+clear_btn_img = PhotoImage(
+    file="assets/clear_btn.png")
+clear_btn = Button(
+    image=clear_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:clear_entry(),
+    relief="flat"
+)
+clear_btn.place(
+    x=1061.0,
+    y=129.0,
+    width=91.0,
+    height=35.0
+)
+
+# view button
+view_invoice_pdf_btn_img = PhotoImage(
+    file="assets/viewpdf_btn.png")
+view_invoice_pdf_btn = Button(
+    image=view_invoice_pdf_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:view_pdf(),
+    relief="flat"
+)
+view_invoice_pdf_btn.place(
+    x=1168.0,
+    y=129.0,
+    width=141.0,
+    height=35.0
+)
+
+# invoice ID
+canvasgui.create_text(
+    914.0,
+    187.0,
+    anchor="nw",
+    text="Invoice ID",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+
+invoice_id_entry_img = PhotoImage(
+    file="assets/invoice_id_entry.png")
+entry_bg_2 = canvasgui.create_image(
+    1184.5,
+    204.5,
+    image=invoice_id_entry_img
+)
+invoice_id_entry = Entry(
+    bd=0,
+    bg="#FFFFFF",
+    highlightthickness=0
+)
+invoice_id_entry.place(
+    x=1097.5,
+    y=187.0,
+    width=174.0,
+    height=33.0
+)
+
+# date
+canvasgui.create_text(
+    913.0,
+    222.0,
+    anchor="nw",
+    text="Date",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+canvasgui.create_text(
+    913, # 915
+    245.0, # 235
+    anchor="nw",
+    text="(mm-dd-yyyy)",
+    fill="#9F9F9F",
+    font=("MicrosoftSansSerif", 14 * -1)
+)
+
+date_entry_img = PhotoImage(
+    file="assets/date_entry.png")
+entry_bg_3 = canvasgui.create_image(
+    1184.5,
+    286.5,
+    image=date_entry_img
+)
+date_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+date_entry.place(
+    x=1097.5,
+    y=228.0,
+    width=174.0,
+    height=33.0
+)
+
+# description
+canvasgui.create_text(
+    914.0,
+    269.0,
+    anchor="nw",
+    text="Description",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+
+description_entry_img = PhotoImage(
+    file="assets/description_entry.png")
+entry_bg_4 = canvasgui.create_image(
+    1186.5,
+    391.5,
+    image=description_entry_img
+)
+description_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+description_entry.place(
+    x=1097.5,
+    y=269.0,
+    width=174.0,
+    height=33.0
+)
+
+
+# amount
+canvasgui.create_text(
+    914.0,
+    310.0,
+    anchor="nw",
+    text="Amount",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+amount_entry_img = PhotoImage(
+    file="assets/amount_entry.png")
+entry_bg_5 = canvasgui.create_image(
+    1186.5,
+    473.5,
+    image=amount_entry_img
+)
+amount_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+amount_entry.place(
+    x=1097.5,
+    y=310.0,
+    width=174.0,
+    height=33.0
+)
+
+# first name
+canvasgui.create_text(
+    916.0,
+    374.0,
+    anchor="nw",
+    text="First Name",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+first_name_entry_img = PhotoImage(
+    file="assets/first_name_entry.png")
+entry_bg_6 = canvasgui.create_image(
+    1186.5,
+    555.5,
+    image=first_name_entry_img
+)
+first_name_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+first_name_entry.place(
+    x=1099.5,
+    y=374.0,
+    width=174.0,
+    height=33.0
+)
+
+# last name
+canvasgui.create_text(
+    916.0,
+    415.0,
+    anchor="nw",
+    text="Last Name",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+last_name_entry_img = PhotoImage(
+    file="assets/last_name_entry.png")
+entry_bg_7 = canvasgui.create_image(
+    1184.5,
+    327.5,
+    image=last_name_entry_img
+)
+last_name_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+last_name_entry.place(
+    x=1099.5,
+    y=415.0,
+    width=174.0,
+    height=33.0
+)
+
+# company
+canvasgui.create_text(
+    916.0,
+    456.0,
+    anchor="nw",
+    text="Company",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+company_entry_img = PhotoImage(
+    file="assets/company_entry.png")
+entry_bg_8 = canvasgui.create_image(
+    1186.5,
+    432.5,
+    image=company_entry_img
+)
+company_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+company_entry.place(
+    x=1099.5,
+    y=456.0,
+    width=174.0,
+    height=33.0
+)
+
+# street
+canvasgui.create_text(
+    916.0,
+    497.0,
+    anchor="nw",
+    text="Street Address",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+street_entry_img = PhotoImage(
+    file="assets/street_entry.png")
+entry_bg_9 = canvasgui.create_image(
+    1186.5,
+    514.5,
+    image=street_entry_img
+)
+street_entry = Entry(
+    bd=0,
+    bg="#FFFFFF",
+    highlightthickness=0
+)
+street_entry.place(
+    x=1099.5,
+    y=497.0,
+    width=174.0,
+    height=33.0
+)
+
+# city
+canvasgui.create_text(
+    916.0,
+    538.0,
+    anchor="nw",
+    text="City",
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+city_entry_img = PhotoImage(
+    file="assets/city_entry.png")
+entry_bg_10 = canvasgui.create_image(
+    1186.5,
+    596.5,
+    image=city_entry_img
+)
+city_entry = Entry(
+    bd=0,
+    bg="white",
+    highlightthickness=0
+)
+city_entry.place(
+    x=1099.5,
+    y=538.0,
+    width=174.0,
+    height=33.0
+)
+
+# state
+canvasgui.create_text(
+    916.0,
+    579.0,
+    anchor="nw",
+    text="ZIP", #State
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+state_entry_img = PhotoImage(
+    file="assets/state_entry.png")
+entry_bg_11 = canvasgui.create_image(
+    1186.5,
+    637.5,
+    image=state_entry_img
+)
+state_combobox = ttk.Combobox(
+    values=["AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TX","UT","VT","VA","WA","WV","WI","WY"]#,
+    #bd=0,
+    #bg="#FFFFFF",
+    #highlightthickness=0
+)
+state_combobox.place(
+    x=1099.5,
+    y=620.0,
+    width=174.0,
+    height=33.0
+)
+
+# zip
+canvasgui.create_text(
+    916.0,
+    620.0,
+    anchor="nw",
+    text="State",  #ZIP
+    fill="#0F1A20",
+    font=("MicrosoftSansSerif", 20 * -1)
+)
+
+zip_entry_img = PhotoImage(
+    file="assets/zip_entry.png")
+entry_bg_12 = canvasgui.create_image(
+    1184.5,
+    245.5,
+    image=zip_entry_img
+)
+zip_entry = Entry(
+    bd=0,
+    bg="#FFFFFF",
+    highlightthickness=0
+)
+zip_entry.place(
+    x=1099.5,
+    y=579.0,
+    width=174.0,
+    height=33.0
+)
+
+# create
+createnewinvoice_btn_img = PhotoImage(
+    file="assets/createnewinvoice_btn.png")
+createnewinvoice_btn = Button(
+    image=createnewinvoice_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:enter_data(),
+    relief="flat"
+)
+createnewinvoice_btn.place(
+    x=901.0,
+    y=679.0,
+    width=114.0,
+    height=35.0
+)
+
+# update
+update_invoice_btn_img = PhotoImage(
+    file="assets/update_invoice_btn.png")
+update_invoice_btn = Button(
+    image=update_invoice_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:update_invoice(),
+    relief="flat"
+)
+update_invoice_btn.place(
+    x=1054.0,
+    y=679.0,
+    width=114.0,
+    height=35.0
+)
+
+# delete
+delete_invoice_btn_img = PhotoImage(
+    file="assets/delete_invoice_btn.png")
+delete_invoice_btn = Button(
+    image=delete_invoice_btn_img,
+    borderwidth=0,
+    highlightthickness=0,
+    command=lambda:delete_invoice(),
+    relief="flat"
+)
+delete_invoice_btn.place(
+    x=1202.0,
+    y=679.0,
+    width=114.0,
+    height=35.0
+)
+
+# -------------------------------------------------------------------------
+# ===============================================================================
 
 window.mainloop()
